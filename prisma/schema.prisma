@@ -1,0 +1,219 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Audit trail for event admin actions
+model EventAudit {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String?
+  action    String
+  fromValue String?
+  toValue   String?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id])
+  user  User? @relation(fields: [userId], references: [id])
+}
+
+// Audit trail for admin actions affecting users (e.g., marketing opt-in toggles)
+model UserAudit {
+  id        String   @id @default(cuid())
+  userId    String
+  adminId   String?
+  action    String
+  fromValue String?
+  toValue   String?
+  createdAt DateTime @default(now())
+
+  user  User  @relation("UserAuditTarget", fields: [userId], references: [id])
+  admin User? @relation("UserAuditAdmin", fields: [adminId], references: [id])
+}
+
+// Access requests submitted from login page
+model AccessRequest {
+  id          String   @id @default(cuid())
+  name        String
+  group       String?
+  location    String?
+  email       String
+  consent     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  ip          String?
+  userAgent   String?
+  processedAt DateTime?
+  processedBy String?
+
+  processedByUser User? @relation("AccessRequestProcessedBy", fields: [processedBy], references: [id])
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum EventStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  CANCELLED
+  SOLD_OUT
+}
+
+// Core models (MVP, no recurrence yet)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  passwordHash String?
+  emailVerified DateTime?
+  role      Role     @default(USER)
+  marketingOptIn Boolean   @default(false)
+  marketingOptInAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations for Auth.js
+  accounts  Account[]
+  sessions  Session[]
+  // Author of events
+  events    Event[]   @relation("UserEvents")
+  // Admin/mod actions
+  audits    EventAudit[]
+  // User audits (as target and as acting admin)
+  userAuditEntries  UserAudit[] @relation("UserAuditTarget")
+  adminAuditEntries UserAudit[] @relation("UserAuditAdmin")
+  // Access requests this user processed (admin/mod)
+  accessRequestsProcessed AccessRequest[] @relation("AccessRequestProcessedBy")
+}
+
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  city      String?
+  region    String?
+  country   String?
+  postalCode String?
+  lat       Float?
+  lng       Float?
+  url       String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    Event[]
+}
+
+model Organizer {
+  id        String   @id @default(cuid())
+  name      String
+  bio       String?
+  url       String?
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    Event[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    EventCategory[]
+}
+
+model Event {
+  id          String          @id @default(cuid())
+  title       String
+  slug        String          @unique
+  description String?
+  startAt     DateTime
+  endAt       DateTime
+  timezone    String
+  status      EventStatus     @default(DRAFT)
+  isFeatured  Boolean         @default(false)
+  coverImage  String?
+  isOnline    Boolean         @default(false)
+  priceCents  Int?
+  currency    String?         @default("USD")
+  deletedAt   DateTime?
+
+  venueId     String?
+  venue       Venue?          @relation(fields: [venueId], references: [id])
+
+  organizerId String?
+  organizer   Organizer?      @relation(fields: [organizerId], references: [id])
+
+  createdByUserId String?
+  createdBy       User?        @relation("UserEvents", fields: [createdByUserId], references: [id])
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  categories  EventCategory[]
+  audits      EventAudit[]
+}
+
+// Join table for Event <-> Category (many-to-many)
+model EventCategory {
+  eventId    String
+  categoryId String
+
+  event      Event    @relation(fields: [eventId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@id([eventId, categoryId])
+}
+
+// Auth.js (NextAuth) models (Prisma Adapter)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @map("refresh_token")
+  access_token      String? @map("access_token")
+  expires_at        Int?    @map("expires_at")
+  token_type        String? @map("token_type")
+  scope             String?
+  id_token          String? @map("id_token")
+  session_state     String? @map("session_state")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

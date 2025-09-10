@@ -1,0 +1,50 @@
+{
+  "Common": {
+    "today": "Today",
+    "prev": "Prev",
+    "next": "Next",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "list": "List",
+    "viewAll": "View all",
+    "noEvents": "No events"
+  },
+  "Home": {
+    "searchPlaceholder": "Search for events",
+    "locationPlaceholder": "Location",
+    "featuredThisMonth": "Featured this month",
+    "all": "All",
+    "music": "Music",
+    "free": "Free",
+    "online": "Online",
+    "quickToday": "Today",
+    "quickWeekend": "This weekend"
+  },
+  "List": {
+    "events": "Events",
+    "showing": "Showing",
+    "of": "of",
+    "page": "Page"
+  },
+  "Event": {
+    "venue": "Venue",
+    "organizer": "Organizer",
+    "back": "\u2190 Back to calendar"
+  },
+  "Contact": {
+    "title": "Contact",
+    "intro": "For general inquiries, partnerships, or support, please reach out:",
+    "email": "Email",
+    "support": "Support",
+    "note": "We aim to respond within 2 business days."
+  },
+  "Rules": {
+    "title": "Event Rules",
+    "intro": "Please follow these guidelines when creating events:",
+    "rule1": "Provide accurate and up-to-date information.",
+    "rule2": "Respect local regulations and community standards.",
+    "rule3": "Do not submit spam or duplicate listings.",
+    "note": "Violations may result in removal of events or account restrictions."
+  }
+}

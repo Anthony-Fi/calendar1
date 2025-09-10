@@ -1,0 +1,50 @@
+{
+  "Common": {
+    "today": "Tänään",
+    "prev": "Edellinen",
+    "next": "Seuraava",
+    "month": "Kuukausi",
+    "week": "Viikko",
+    "day": "Päivä",
+    "list": "Lista",
+    "viewAll": "Näytä kaikki",
+    "noEvents": "Ei tapahtumia"
+  },
+  "Home": {
+    "searchPlaceholder": "Hae tapahtumia",
+    "locationPlaceholder": "Sijainti",
+    "featuredThisMonth": "Kuukauden poiminnat",
+    "all": "Kaikki",
+    "music": "Musiikki",
+    "free": "Ilmainen",
+    "online": "Verkossa",
+    "quickToday": "Tänään",
+    "quickWeekend": "Tänä viikonloppuna"
+  },
+  "List": {
+    "events": "Tapahtumat",
+    "showing": "Näytetään",
+    "of": "/",
+    "page": "Sivu"
+  },
+  "Event": {
+    "venue": "Paikka",
+    "organizer": "Järjestäjä",
+    "back": "\u2190 Takaisin kalenteriin"
+  },
+  "Contact": {
+    "title": "Yhteystiedot",
+    "intro": "Yleiset kysymykset, kumppanuudet tai tuki: ota yhteyttä:",
+    "email": "Sähköposti",
+    "support": "Tuki",
+    "note": "Tavoittelemme vastausta 2 arkipäivän kuluessa."
+  },
+  "Rules": {
+    "title": "Tapahtumasäännöt",
+    "intro": "Noudata näitä ohjeita luodessasi tapahtumia:",
+    "rule1": "Anna oikeat ja ajantasaiset tiedot.",
+    "rule2": "Noudata paikallisia määräyksiä ja yhteisön sääntöjä.",
+    "rule3": "Älä lähetä roskapostia tai päällekkäisiä ilmoituksia.",
+    "note": "Rikkomukset voivat johtaa tapahtuman poistamiseen tai tilin rajoittamiseen."
+  }
+}

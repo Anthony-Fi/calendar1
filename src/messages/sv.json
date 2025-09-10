@@ -1,0 +1,50 @@
+{
+  "Common": {
+    "today": "Idag",
+    "prev": "Föregående",
+    "next": "Nästa",
+    "month": "Månad",
+    "week": "Vecka",
+    "day": "Dag",
+    "list": "Lista",
+    "viewAll": "Visa alla",
+    "noEvents": "Inga evenemang"
+  },
+  "Home": {
+    "searchPlaceholder": "Sök efter evenemang",
+    "locationPlaceholder": "Plats",
+    "featuredThisMonth": "Utvalda denna månad",
+    "all": "Alla",
+    "music": "Musik",
+    "free": "Gratis",
+    "online": "Online",
+    "quickToday": "Idag",
+    "quickWeekend": "I helgen"
+  },
+  "List": {
+    "events": "Evenemang",
+    "showing": "Visar",
+    "of": "av",
+    "page": "Sida"
+  },
+  "Event": {
+    "venue": "Plats",
+    "organizer": "Arrangör",
+    "back": "\u2190 Tillbaka till kalender"
+  },
+  "Contact": {
+    "title": "Kontakt",
+    "intro": "För allmänna frågor, partnerskap eller support, vänligen kontakta:",
+    "email": "E-post",
+    "support": "Support",
+    "note": "Vi försöker svara inom 2 arbetsdagar."
+  },
+  "Rules": {
+    "title": "Regler för evenemang",
+    "intro": "Följ dessa riktlinjer när du skapar evenemang:",
+    "rule1": "Lämna korrekt och uppdaterad information.",
+    "rule2": "Följ lokala regler och gemenskapsstandarder.",
+    "rule3": "Skicka inte spam eller dubbletter.",
+    "note": "Brott kan leda till borttagning av evenemang eller begränsningar av kontot."
+  }
+}
