@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 const locales = ['en', 'sv', 'fi'] as const
 const defaultLocale = 'en'
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   // Ignore API, Next internals, and static files
   if (
@@ -24,28 +24,27 @@ export function middleware(req: NextRequest) {
   // Protect admin routes: /[locale]/admin/*
   if (segments.length >= 2 && segments[1] === 'admin') {
     // Validate session via NextAuth session endpoint with forwarded cookies
-    const sessionUrl = new URL('/api/auth/session', req.nextUrl.origin)
-    const cookie = req.headers.get('cookie') || ''
-    return fetch(sessionUrl.toString(), {
-      headers: { cookie },
-      cache: 'no-store',
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`session ${res.status}`)
-        const data = await res.json().catch(() => null)
-        const role = (data?.user as any)?.role as 'USER' | 'MODERATOR' | 'ADMIN' | undefined
-        if (role === 'MODERATOR' || role === 'ADMIN') {
-          return NextResponse.next()
-        }
-        const url = req.nextUrl.clone()
-        url.pathname = `/${first}`
-        return NextResponse.redirect(url)
+    try {
+      const sessionUrl = new URL('/api/auth/session', req.nextUrl.origin)
+      const cookie = req.headers.get('cookie') || ''
+      const res = await fetch(sessionUrl.toString(), {
+        headers: { cookie },
+        cache: 'no-store',
       })
-      .catch(() => {
-        const url = req.nextUrl.clone()
-        url.pathname = `/${first}`
-        return NextResponse.redirect(url)
-      }) as unknown as NextResponse
+      if (!res.ok) throw new Error(`session ${res.status}`)
+      const data = await res.json().catch(() => null)
+      const role = (data?.user as any)?.role as 'USER' | 'MODERATOR' | 'ADMIN' | undefined
+      if (role === 'MODERATOR' || role === 'ADMIN') {
+        return NextResponse.next()
+      }
+      const url = req.nextUrl.clone()
+      url.pathname = `/${first}`
+      return NextResponse.redirect(url)
+    } catch {
+      const url = req.nextUrl.clone()
+      url.pathname = `/${first}`
+      return NextResponse.redirect(url)
+    }
   }
   return NextResponse.next()
 }
