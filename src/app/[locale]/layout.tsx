@@ -1,5 +1,6 @@
 import Footer from '@/components/Footer'
 import Providers from '@/components/Providers'
+import MobileNav from '@/components/MobileNav'
 
 export function generateStaticParams() {
   return [{locale: 'en'}, {locale: 'sv'}, {locale: 'fi'}]
@@ -19,6 +20,8 @@ export default async function LocaleLayout({
     <Providers>
       {children}
       <Footer locale={locale} />
+      {/* Mobile bottom navigation */}
+      <MobileNav locale={locale} />
     </Providers>
   )
 }

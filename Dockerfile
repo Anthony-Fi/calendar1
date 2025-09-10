@@ -25,6 +25,11 @@ ENV PORT=3000
 # Bind to all interfaces in container
 ENV HOSTNAME=0.0.0.0
 
+# Install OpenSSL for Prisma (runtime engines rely on libssl)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 # Copy only what we need at runtime
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json

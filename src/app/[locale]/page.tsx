@@ -369,12 +369,23 @@ export default async function Home({
               <div key={idx} className={['border rounded p-2 min-h-[90px] flex flex-col gap-1', cell.inCurrentMonth ? '' : 'opacity-50', cell.isToday ? 'border-blue-500' : ''].join(' ')}>
                 <a href={`/${locale}/day?d=${key}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`} className="text-xs font-medium underline">{cell.date.getUTCDate()}</a>
                 <div className="flex flex-col gap-1">
-                  {items.slice(0,3).map((ev: EventWithRelations) => (
-                    <a key={ev.id} href={`/${locale}/event/${ev.slug}`} className="text-xs truncate rounded bg-gray-100 px-1 py-0.5 hover:bg-gray-200">{ev.title}</a>
-                  ))}
-                  {items.length > 3 && (
-                    <a href={`/${locale}/day?d=${key}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`} className="text-[10px] text-gray-500 underline">+{items.length - 3} more</a>
-                  )}
+                  {/* Mobile: show a compact count badge that links to Day view */}
+                  <div className="sm:hidden">
+                    {items.length > 0 && (
+                      <a href={`/${locale}/day?d=${key}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`} className="inline-block text-xs rounded bg-gray-100 px-1.5 py-0.5 hover:bg-gray-200">
+                        {items.length} {items.length === 1 ? 'event' : 'events'}
+                      </a>
+                    )}
+                  </div>
+                  {/* Desktop/tablet: show individual event titles */}
+                  <div className="hidden sm:flex flex-col gap-1">
+                    {items.slice(0,3).map((ev: EventWithRelations) => (
+                      <a key={ev.id} href={`/${locale}/event/${ev.slug}`} className="text-xs truncate rounded bg-gray-100 px-1 py-0.5 hover:bg-gray-200">{ev.title}</a>
+                    ))}
+                    {items.length > 3 && (
+                      <a href={`/${locale}/day?d=${key}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`} className="text-[10px] text-gray-500 underline">+{items.length - 3} more</a>
+                    )}
+                  </div>
                 </div>
               </div>
             )
