@@ -1,5 +1,8 @@
 import { headers } from 'next/headers'
 import TzSync from '@/components/TzSync'
+import SwipeNav from '@/components/SwipeNav'
+
+export const revalidate = 60
 
 function startOfUTCDate(d: Date) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0))
@@ -56,6 +59,15 @@ export default async function DayPage({
 
   const title = theDay.toLocaleDateString(locale, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: tz || undefined })
 
+  // Build prev/next day links
+  function fmt(d: Date) {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+  }
+  const prevDay = new Date(Date.UTC(theDay.getUTCFullYear(), theDay.getUTCMonth(), theDay.getUTCDate() - 1))
+  const nextDay = new Date(Date.UTC(theDay.getUTCFullYear(), theDay.getUTCMonth(), theDay.getUTCDate() + 1))
+  const prevHref = `/${locale}/day?d=${fmt(prevDay)}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`
+  const nextHref = `/${locale}/day?d=${fmt(nextDay)}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`
+
   return (
     <div className="min-h-screen p-6 sm:p-10">
       <div className="mx-auto max-w-3xl space-y-4">
@@ -92,6 +104,8 @@ export default async function DayPage({
             </a>
           ))}
         </div>
+        {/* Swipe navigation (mobile): right=prev day, left=next day */}
+        <SwipeNav leftHref={nextHref} rightHref={prevHref} />
       </div>
     </div>
   )

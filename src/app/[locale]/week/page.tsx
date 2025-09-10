@@ -1,5 +1,8 @@
 import { headers } from 'next/headers'
 import TzSync from '@/components/TzSync'
+import SwipeNav from '@/components/SwipeNav'
+
+export const revalidate = 60
 
 function startOfUTCDate(d: Date) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0))
@@ -65,6 +68,15 @@ export default async function WeekPage({
 
   const title = `Week of ${monday.toLocaleDateString(locale, { dateStyle: 'medium' })}`
 
+  // Prev/next week links
+  function fmt(d: Date) {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+  }
+  const prevMon = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() - 7))
+  const nextMon = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 7))
+  const prevHref = `/${locale}/week?d=${fmt(prevMon)}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`
+  const nextHref = `/${locale}/week?d=${fmt(nextMon)}${tz ? `&tz=${encodeURIComponent(tz)}` : ''}`
+
   function buildDayLink(d: Date) {
     const y = d.getUTCFullYear()
     const m = d.getUTCMonth() + 1
@@ -116,6 +128,8 @@ export default async function WeekPage({
           ))}
         </div>
       </div>
+      {/* Swipe navigation (mobile): right=prev week, left=next week */}
+      <SwipeNav leftHref={nextHref} rightHref={prevHref} />
     </div>
   )
 }

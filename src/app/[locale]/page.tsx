@@ -3,6 +3,9 @@ import { getMonthGrid } from '@/lib/calendar/month'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import TzSync from '@/components/TzSync'
+import SwipeNav from '@/components/SwipeNav'
+
+export const revalidate = 60
 
 // Minimal local type for rendering; avoids importing Prisma model types
 type EventWithRelations = {
@@ -271,31 +274,49 @@ export default async function Home({
       <div className="mx-auto max-w-5xl">
         {/* Sync browser timezone into tz query param */}
         <TzSync />
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">{formatMonthYear(new Date(Date.UTC(year, monthIndex0, 1)), locale)}</h1>
-            {tz && <span className="text-xs rounded border px-2 py-0.5 text-gray-700">{tz}</span>}
-          </div>
-          <div className="flex gap-2 items-center">
-            <a href={buildUrl(now.getUTCFullYear(), now.getUTCMonth())} className="px-3 py-1.5 rounded border">{t('today')}</a>
-            <a href={buildUrl(prevMonthDate.getUTCFullYear(), prevMonthDate.getUTCMonth())} className="px-3 py-1.5 rounded border">{t('prev')}</a>
-            <a href={buildUrl(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth())} className="px-3 py-1.5 rounded border">{t('next')}</a>
-            <div className="hidden sm:flex gap-2">
-              <a href={buildUrlWith({})} className="px-3 py-1.5 rounded border">{t('month')}</a>
-              <a href={`/${locale}/week${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`} className="px-3 py-1.5 rounded border">{t('week')}</a>
-              <a href={`/${locale}/day${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`} className="px-3 py-1.5 rounded border">{t('day')}</a>
-              <a href={`/${locale}/list`} className="px-3 py-1.5 rounded border">{t('list')}</a>
+        {/* Sticky header with navigation */}
+        <div className="sticky top-0 z-20 -mx-6 sm:-mx-10 px-6 sm:px-10 py-3 bg-white/90 backdrop-blur border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold">{formatMonthYear(new Date(Date.UTC(year, monthIndex0, 1)), locale)}</h1>
+              {tz && <span className="text-xs rounded border px-2 py-0.5 text-gray-700">{tz}</span>}
             </div>
-            <div className="hidden sm:flex gap-1 text-xs ml-2">
-              <a href={buildLocaleUrl('en')} className={`px-2 py-1 rounded border ${locale==='en' ? 'bg-black text-white border-black' : ''}`}>EN</a>
-              <a href={buildLocaleUrl('sv')} className={`px-2 py-1 rounded border ${locale==='sv' ? 'bg-black text-white border-black' : ''}`}>SV</a>
-              <a href={buildLocaleUrl('fi')} className={`px-2 py-1 rounded border ${locale==='fi' ? 'bg-black text-white border-black' : ''}`}>FI</a>
+            <div className="flex gap-2 items-center">
+              <a href={buildUrl(now.getUTCFullYear(), now.getUTCMonth())} className="px-3 py-1.5 rounded border">{t('today')}</a>
+              <a href={buildUrl(prevMonthDate.getUTCFullYear(), prevMonthDate.getUTCMonth())} className="px-3 py-1.5 rounded border">{t('prev')}</a>
+              <a href={buildUrl(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth())} className="px-3 py-1.5 rounded border">{t('next')}</a>
+              <div className="hidden sm:flex gap-2">
+                <a href={buildUrlWith({})} className="px-3 py-1.5 rounded border">{t('month')}</a>
+                <a href={`/${locale}/week${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`} className="px-3 py-1.5 rounded border">{t('week')}</a>
+                <a href={`/${locale}/day${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`} className="px-3 py-1.5 rounded border">{t('day')}</a>
+                <a href={`/${locale}/list`} className="px-3 py-1.5 rounded border">{t('list')}</a>
+              </div>
+              <div className="hidden sm:flex gap-1 text-xs ml-2">
+                <a href={buildLocaleUrl('en')} className={`px-2 py-1 rounded border ${locale==='en' ? 'bg-black text-white border-black' : ''}`}>EN</a>
+                <a href={buildLocaleUrl('sv')} className={`px-2 py-1 rounded border ${locale==='sv' ? 'bg-black text-white border-black' : ''}`}>SV</a>
+                <a href={buildLocaleUrl('fi')} className={`px-2 py-1 rounded border ${locale==='fi' ? 'bg-black text-white border-black' : ''}`}>FI</a>
+              </div>
             </div>
           </div>
+          {/* Collapsible filters on mobile */}
+          <details className="sm:hidden mt-2">
+            <summary className="text-sm underline">Filters</summary>
+            <div className="pt-2">
+              <form className="grid grid-cols-1 gap-2" method="get" action={`/${locale}`}>
+                <input type="hidden" name="y" value={String(year)} />
+                <input type="hidden" name="m" value={String(monthIndex0 + 1)} />
+                <Input name="q" defaultValue={q} placeholder={th('searchPlaceholder')} />
+                <Input name="loc" defaultValue={loc} placeholder={th('locationPlaceholder')} />
+                <Input type="date" name="from" defaultValue={from} />
+                <Input type="date" name="to" defaultValue={to} />
+                <Button type="submit">Search</Button>
+              </form>
+            </div>
+          </details>
         </div>
 
-        {/* Search bar */}
-        <form className="mb-6 grid grid-cols-1 sm:grid-cols-6 gap-2" method="get" action={`/${locale}`}>
+        {/* Search bar (desktop/tablet) */}
+        <form className="hidden sm:grid mb-6 grid-cols-6 gap-2" method="get" action={`/${locale}`}>
           <input type="hidden" name="y" value={String(year)} />
           <input type="hidden" name="m" value={String(monthIndex0 + 1)} />
           <Input name="q" defaultValue={q} placeholder={th('searchPlaceholder')} className="sm:col-span-3" />
@@ -435,6 +456,11 @@ export default async function Home({
             </div>
           </div>
         )}
+        {/* Swipe navigation (mobile): right=prev, left=next */}
+        <SwipeNav
+          leftHref={buildUrl(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth())}
+          rightHref={buildUrl(prevMonthDate.getUTCFullYear(), prevMonthDate.getUTCMonth())}
+        />
       </div>
     </div>
   )

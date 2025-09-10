@@ -100,6 +100,8 @@ model User {
   adminAuditEntries UserAudit[] @relation("UserAuditAdmin")
   // Access requests this user processed (admin/mod)
   accessRequestsProcessed AccessRequest[] @relation("AccessRequestProcessedBy")
+  // Groups this user represents
+  representedOrganizations Organizer[] @relation("OrganizerRepresentative")
 }
 
 model Venue {
@@ -122,10 +124,18 @@ model Venue {
 model Organizer {
   id        String   @id @default(cuid())
   name      String
+  slug      String?  @unique
   bio       String?
   url       String?
   email     String?
   phone     String?
+  address   String?
+  city      String?
+  region    String?
+  country   String?
+  postalCode String?
+  representativeUserId String?
+  representative User? @relation("OrganizerRepresentative", fields: [representativeUserId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   events    Event[]

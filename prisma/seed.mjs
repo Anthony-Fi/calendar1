@@ -154,6 +154,7 @@ async function main() {
     create: {
       id: 'org_city',
       name: 'City Events',
+      slug: 'city-events',
       bio: 'Local event organizer',
       url: 'https://example.com/organizer',
       email: 'info@example.com',

@@ -14,9 +14,13 @@ export default function Footer({ locale }: Props) {
     <footer className="mt-10 border-t py-6 text-sm text-gray-700">
       <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-3">
+          <a href={`/${locale}`} className="underline">Home</a>
+          <span className="text-gray-300">|</span>
           <a href={`/${locale}/contact`} className="underline">Contact</a>
           <span className="text-gray-300">|</span>
           <a href={`/${locale}/rules`} className="underline">Rules</a>
+          <span className="text-gray-300">|</span>
+          <a href={`/${locale}/groups`} className="underline">Groups</a>
         </div>
         <div className="flex items-center gap-3">
           {user ? (

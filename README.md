@@ -118,3 +118,27 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - Never store or resend plaintext passwords; use the Generate Password tool only for a one-time copy and encourage users to change it after login
 - Prefer passwordless login (or SSO) and enable CAPTCHA for public forms in production
 - Always use HTTPS and a strong `NEXTAUTH_SECRET` in production
+
+## Roadmap / TODO
+
+- SEO pack (completed)
+  - Per-event `generateMetadata()` with Open Graph/Twitter
+  - Robots and Sitemap routes
+  - Dynamic Open Graph image for events `src/app/[locale]/event/[slug]/opengraph-image.tsx`
+- Navigation & UX (completed)
+  - Sticky month header and collapsible filters on mobile
+  - Swipe navigation for Month/Week/Day views
+  - Share buttons on Event and Group pages (native share + copy link)
+  - Basic caching via `export const revalidate = 60` on heavy pages
+
+- Next up (proposal)
+  - ICS calendar feeds (site, category, group): `src/app/api/ics/route.ts`
+  - JSON-LD for Groups
+  - Category landing pages (`/[locale]/category/[slug]`) + RSS
+  - Dynamic OG images for Groups `opengraph-image.tsx`
+  - Analytics integration (Plausible/Umami)
+  - Rate limiting for write APIs; CAPTCHA/Turnstile on public forms
+  - Group representative invitation flow and “Claim this group” requests
+  - Saved filters/bookmarks for list/month views
+
+Contributions: open a PR with one item per change. Keep diffs small. Add tests where applicable.

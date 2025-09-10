@@ -2,6 +2,8 @@ import { headers } from 'next/headers'
 import { EventCard } from '@/components/EventCard'
 import TzSync from '@/components/TzSync'
 
+export const revalidate = 60
+
 export default async function ListPage({
   params,
   searchParams,
