@@ -169,6 +169,25 @@ export default async function Home({
     },
   })) as unknown as EventWithRelations[]
 
+  // Upcoming events (next 8 from now)
+  const nowUtcForUpcoming = new Date()
+  const upcoming = (await prisma.event.findMany({
+    where: ({
+      AND: [
+        { deletedAt: null as any },
+        { NOT: { status: 'DRAFT' as any } },
+        // Show events that haven't ended yet
+        { endAt: { gte: nowUtcForUpcoming } },
+      ],
+    } as any),
+    orderBy: { startAt: 'asc' },
+    include: {
+      categories: { include: { category: true } },
+      venue: true,
+    },
+    take: 8,
+  })) as unknown as EventWithRelations[]
+
   // Featured events for strip
   const featured = (await prisma.event.findMany({
     where: ({
@@ -391,6 +410,31 @@ export default async function Home({
             )
           })}
         </div>
+
+        {/* Upcoming events (next 8) */}
+        {upcoming.length > 0 && (
+          <div className="mt-8 mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold">Upcoming</h2>
+              <a href={`/${locale}/list${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`} className="text-sm underline">{t('viewAll')}</a>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {upcoming.map((ev) => (
+                <div key={ev.id} className="min-w-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <a href={`/${locale}/event/${ev.slug}`} className="block rounded-lg overflow-hidden border hover:shadow-sm transition-shadow bg-white">
+                    <img src={ev.coverImage || `https://picsum.photos/seed/${encodeURIComponent(ev.slug)}/600/320`} alt={ev.title} className="w-full h-32 object-cover" />
+                    <div className="p-3 space-y-1">
+                      <div className="text-xs text-gray-600">{new Date(ev.startAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: tz || ev.timezone || 'UTC' })}</div>
+                      <div className="text-sm font-semibold truncate">{ev.title}</div>
+                      {ev.venue?.name && (<div className="text-xs text-gray-600 truncate">{ev.venue.name}{ev.venue.city ? `, ${ev.venue.city}` : ''}</div>)}
+                    </div>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
