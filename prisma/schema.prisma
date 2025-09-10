@@ -5,7 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Ensure the correct engine for Debian OpenSSL 3.0 inside the runtime container
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 // Audit trail for event admin actions
