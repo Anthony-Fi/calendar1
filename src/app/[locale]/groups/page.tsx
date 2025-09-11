@@ -1,14 +1,24 @@
 import prisma from '@/lib/db'
 
-export const revalidate = 60
+// Force dynamic rendering so this page is not prerendered at build time
+// This avoids requiring DATABASE_URL during `next build`
+export const dynamic = 'force-dynamic'
 
 export default async function GroupsIndex({ params }: { params: Promise<{ locale: 'en' | 'sv' | 'fi' }> }) {
   const { locale } = await params
 
-  const orgs = (await prisma.organizer.findMany({
-    where: {},
-    orderBy: { name: 'asc' },
-  })) as any[]
+  let orgs: any[] = []
+  if (process.env.DATABASE_URL) {
+    try {
+      orgs = (await prisma.organizer.findMany({
+        where: {},
+        orderBy: { name: 'asc' },
+      })) as any[]
+    } catch (err) {
+      // On build servers without DB, swallow and render empty list
+      orgs = []
+    }
+  }
 
   return (
     <div className="min-h-screen p-6 sm:p-10">

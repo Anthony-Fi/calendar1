@@ -7,10 +7,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: 'en' | 'sv' | 'fi'; slug: string }> }) {
   const { locale, slug } = await params
-  const event = await prisma.event.findFirst({
-    where: ({ slug, deletedAt: null as any } as any),
-    select: { title: true, description: true, coverImage: true },
-  })
+  if (!process.env.DATABASE_URL) {
+    return { title: 'Loviisa Online', description: 'Discover upcoming events in Loviisa and nearby.' }
+  }
+  let event: { title: string; description?: string | null; coverImage?: string | null } | null = null
+  try {
+    event = await prisma.event.findFirst({
+      where: ({ slug, deletedAt: null as any } as any),
+      select: { title: true, description: true, coverImage: true },
+    })
+  } catch (e) {
+    event = null
+  }
   if (!event) return { title: 'Event not found' }
   const base = process.env.NEXTAUTH_URL || 'http://localhost:3000'
   const url = `${base}/${locale}/event/${slug}`
@@ -52,14 +60,20 @@ export default async function EventPage({ params, searchParams }: { params: Prom
   const messages = (await import(`@/messages/${locale}.json`)).default as any
   const t = (key: keyof typeof messages.Event) => messages.Event[key]
 
-  const event = (await prisma.event.findFirst({
-    where: ({ slug, deletedAt: null as any } as any),
-    include: {
-      venue: true,
-      organizer: true,
-      categories: { include: { category: true } },
-    },
-  })) as any
+  if (!process.env.DATABASE_URL) return notFound()
+  let event: any = null
+  try {
+    event = (await prisma.event.findFirst({
+      where: ({ slug, deletedAt: null as any } as any),
+      include: {
+        venue: true,
+        organizer: true,
+        categories: { include: { category: true } },
+      },
+    })) as any
+  } catch (e) {
+    event = null
+  }
 
   if (!event) return notFound()
   if ((event as any).status === 'DRAFT') return notFound()
