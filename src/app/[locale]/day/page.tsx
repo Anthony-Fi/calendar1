@@ -52,6 +52,7 @@ export default async function DayPage({
   apiParams.set('from', dayStart.toISOString())
   apiParams.set('to', dayEnd.toISOString())
   if (tz) apiParams.set('tz', tz)
+  apiParams.set('locale', locale)
   const res = await fetch(`${origin}/api/events?${apiParams.toString()}`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to load events: ${res.status}`)
   const data = (await res.json()) as { items: any[] }

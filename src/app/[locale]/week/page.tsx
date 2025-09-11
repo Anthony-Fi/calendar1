@@ -43,6 +43,7 @@ export default async function WeekPage({
   apiParams.set('from', weekStart.toISOString())
   apiParams.set('to', weekEnd.toISOString())
   if (tz) apiParams.set('tz', tz)
+  apiParams.set('locale', locale)
   const res = await fetch(`${origin}/api/events?${apiParams.toString()}`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to load events: ${res.status}`)
   const data = (await res.json()) as { items: any[] }

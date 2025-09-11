@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import TzSync from '@/components/TzSync'
 import SwipeNav from '@/components/SwipeNav'
+import { pickEventTranslation } from '@/lib/i18n-events'
 
 export const revalidate = 60
 
@@ -162,52 +163,117 @@ export default async function Home({
     ],
   }
 
-  // Fetch events
-  const events = (await prisma.event.findMany({
-    where,
-    orderBy: { startAt: 'asc' },
-    include: {
-      categories: { include: { category: true } },
-      venue: true,
-    },
-  })) as unknown as EventWithRelations[]
+  // Fetch events (try with translations; fallback without)
+  let eventsRaw: any[] = []
+  try {
+    eventsRaw = await prisma.event.findMany({
+      where,
+      orderBy: { startAt: 'asc' },
+      include: {
+        categories: { include: { category: true } },
+        venue: true,
+        translations: true as any,
+      } as any,
+    })
+  } catch (e) {
+    eventsRaw = await prisma.event.findMany({
+      where,
+      orderBy: { startAt: 'asc' },
+      include: {
+        categories: { include: { category: true } },
+        venue: true,
+      },
+    })
+  }
+  const events: EventWithRelations[] = eventsRaw.map((e: any) => {
+    const t = pickEventTranslation({ title: e.title, description: e.description, translations: e.translations || [] }, locale)
+    return { ...e, title: t.title || e.title, description: t.description || e.description }
+  })
 
   // Upcoming events (next 8 from now)
   const nowUtcForUpcoming = new Date()
-  const upcoming = (await prisma.event.findMany({
-    where: ({
-      AND: [
-        { deletedAt: null as any },
-        { NOT: { status: 'DRAFT' as any } },
-        // Show events that haven't ended yet
-        { endAt: { gte: nowUtcForUpcoming } },
-      ],
-    } as any),
-    orderBy: { startAt: 'asc' },
-    include: {
-      categories: { include: { category: true } },
-      venue: true,
-    },
-    take: 8,
-  })) as unknown as EventWithRelations[]
+  let upcomingRaw: any[] = []
+  try {
+    upcomingRaw = await prisma.event.findMany({
+      where: ({
+        AND: [
+          { deletedAt: null as any },
+          { NOT: { status: 'DRAFT' as any } },
+          { endAt: { gte: nowUtcForUpcoming } },
+        ],
+      } as any),
+      orderBy: { startAt: 'asc' },
+      include: {
+        categories: { include: { category: true } },
+        venue: true,
+        translations: true as any,
+      } as any,
+      take: 8,
+    })
+  } catch (e) {
+    upcomingRaw = await prisma.event.findMany({
+      where: ({
+        AND: [
+          { deletedAt: null as any },
+          { NOT: { status: 'DRAFT' as any } },
+          { endAt: { gte: nowUtcForUpcoming } },
+        ],
+      } as any),
+      orderBy: { startAt: 'asc' },
+      include: {
+        categories: { include: { category: true } },
+        venue: true,
+      },
+      take: 8,
+    })
+  }
+  const upcoming: EventWithRelations[] = upcomingRaw.map((e: any) => {
+    const t = pickEventTranslation({ title: e.title, description: e.description, translations: e.translations || [] }, locale)
+    return { ...e, title: t.title || e.title, description: t.description || e.description }
+  })
 
   // Featured events for strip
-  const featured = (await prisma.event.findMany({
-    where: ({
-      AND: [
-        { deletedAt: null as any },
-        { isFeatured: true },
-        { endAt: { gte: gridStart } },
-        { startAt: { lte: gridEnd } },
-      ],
-    } as any),
-    orderBy: { startAt: 'asc' },
-    include: {
-      categories: { include: { category: true } },
-      venue: true,
-    },
-    take: 6,
-  })) as unknown as EventWithRelations[]
+  let featuredRaw: any[] = []
+  try {
+    featuredRaw = await prisma.event.findMany({
+      where: ({
+        AND: [
+          { deletedAt: null as any },
+          { isFeatured: true },
+          { endAt: { gte: gridStart } },
+          { startAt: { lte: gridEnd } },
+        ],
+      } as any),
+      orderBy: { startAt: 'asc' },
+      include: {
+        categories: { include: { category: true } },
+        venue: true,
+        translations: true as any,
+      } as any,
+      take: 6,
+    })
+  } catch (e) {
+    featuredRaw = await prisma.event.findMany({
+      where: ({
+        AND: [
+          { deletedAt: null as any },
+          { isFeatured: true },
+          { endAt: { gte: gridStart } },
+          { startAt: { lte: gridEnd } },
+        ],
+      } as any),
+      orderBy: { startAt: 'asc' },
+      include: {
+        categories: { include: { category: true } },
+        venue: true,
+      },
+      take: 6,
+    })
+  }
+  const featured: EventWithRelations[] = featuredRaw.map((e: any) => {
+    const t = pickEventTranslation({ title: e.title, description: e.description, translations: e.translations || [] }, locale)
+    return { ...e, title: t.title || e.title, description: t.description || e.description }
+  })
 
   // Map events by YYYY-MM-DD for quick lookup
   const eventsByDay = new Map<string, typeof events>()

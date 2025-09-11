@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import { pickEventTranslation } from '@/lib/i18n-events'
 
 // Events API: tries Prisma; if DB unavailable, falls back to mock data.
 export async function GET(req: NextRequest) {
@@ -13,6 +14,7 @@ export async function GET(req: NextRequest) {
   const online = searchParams.get('online') === '1'
   const quick = searchParams.get('quick') // 'today' | 'weekend'
   const tz = searchParams.get('tz') || ''
+  const locale = (searchParams.get('locale') as 'sv' | 'fi' | 'en' | null) || null
   const status = searchParams.get('status') as
     | 'DRAFT'
     | 'SCHEDULED'
@@ -121,6 +123,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // First, try including translations (new schema)
     const [items, total] = await Promise.all([
       prisma.event.findMany({
         where,
@@ -128,7 +131,8 @@ export async function GET(req: NextRequest) {
           venue: true,
           categories: { include: { category: true } },
           organizer: true,
-        },
+          translations: true,
+        } as any,
         orderBy: { startAt: 'asc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -136,8 +140,34 @@ export async function GET(req: NextRequest) {
       prisma.event.count({ where }),
     ])
 
-    return NextResponse.json({ items, page, pageSize, total })
+    const localized = items.map((e: any) => {
+      const t = pickEventTranslation(
+        { title: e.title, description: e.description, translations: (e as any).translations || [] },
+        locale
+      )
+      return { ...e, title: t.title ?? e.title, description: t.description ?? e.description }
+    })
+
+    return NextResponse.json({ items: localized, page, pageSize, total })
   } catch (err) {
+    // Retry without translations for backward compatibility
+    try {
+      const [items, total] = await Promise.all([
+        prisma.event.findMany({
+          where,
+          include: {
+            venue: true,
+            categories: { include: { category: true } },
+            organizer: true,
+          },
+          orderBy: { startAt: 'asc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        prisma.event.count({ where }),
+      ])
+      return NextResponse.json({ items, page, pageSize, total })
+    } catch (e2) {
     // Fallback: mock data if DB is not reachable or tables not migrated yet
     const all = [
       {
@@ -172,5 +202,6 @@ export async function GET(req: NextRequest) {
     const startIndex = (page - 1) * pageSize
     const items = filtered.slice(startIndex, startIndex + pageSize)
     return NextResponse.json({ items, page, pageSize, total: filtered.length })
+    }
   }
 }

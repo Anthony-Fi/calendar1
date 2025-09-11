@@ -61,6 +61,7 @@ export default async function ListPage({
   if (online) apiParams.set('online', '1')
   if (quick) apiParams.set('quick', quick)
   if (tz) apiParams.set('tz', tz)
+  apiParams.set('locale', locale)
 
   const res = await fetch(`${origin}/api/events?${apiParams.toString()}`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to load events: ${res.status}`)

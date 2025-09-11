@@ -167,6 +167,9 @@ model Event {
   currency    String?         @default("USD")
   deletedAt   DateTime?
 
+  // Default language for authoring; used by admin and fallbacks
+  defaultLanguage String      @default("sv")
+
   venueId     String?
   venue       Venue?          @relation(fields: [venueId], references: [id])
 
@@ -180,6 +183,8 @@ model Event {
   updatedAt   DateTime        @updatedAt
   categories  EventCategory[]
   audits      EventAudit[]
+  // Localized translations for display (title/description per locale)
+  translations EventTranslation[]
 }
 
 // Join table for Event <-> Category (many-to-many)
@@ -191,6 +196,21 @@ model EventCategory {
   category   Category @relation(fields: [categoryId], references: [id])
 
   @@id([eventId, categoryId])
+}
+
+// Per-locale translations for events
+model EventTranslation {
+  id          String   @id @default(cuid())
+  eventId     String
+  locale      String   // 'sv' | 'fi' | 'en'
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@unique([eventId, locale])
 }
 
 // Auth.js (NextAuth) models (Prisma Adapter)

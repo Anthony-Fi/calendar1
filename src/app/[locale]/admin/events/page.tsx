@@ -14,6 +14,7 @@ export default async function AdminEventsPage({ params, searchParams }: { params
   const category = typeof sp?.category === 'string' ? sp.category : ''
   const featuredOnly = sp?.featured === '1'
   const deletedOnly = sp?.deleted === '1'
+  const missingLocale = typeof sp?.missing === 'string' ? (sp.missing as 'sv'|'fi'|'en') : ''
   const page = Math.max(1, parseInt((typeof sp?.page === 'string' ? sp.page : '1') || '1', 10) || 1)
   const pageSize = Math.min(100, Math.max(10, parseInt((typeof sp?.pageSize === 'string' ? sp.pageSize : '50') || '50', 10) || 50))
   const session = await getServerSession(authOptions)
@@ -144,6 +145,7 @@ export default async function AdminEventsPage({ params, searchParams }: { params
       category ? ({ categories: { some: { category: { slug: category } } } } as any) : ({} as any),
       featuredOnly ? ({ isFeatured: true } as any) : ({} as any),
       deletedOnly ? ({ NOT: { deletedAt: null as any } } as any) : ({ deletedAt: null as any } as any),
+      missingLocale ? ({ translations: { none: { locale: missingLocale } } } as any) : ({} as any),
     ],
   } as any
 
@@ -151,7 +153,7 @@ export default async function AdminEventsPage({ params, searchParams }: { params
     prisma.event.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { categories: { include: { category: true } }, createdBy: true },
+      include: { categories: { include: { category: true } }, createdBy: true, translations: true as any } as any,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -167,12 +169,12 @@ export default async function AdminEventsPage({ params, searchParams }: { params
           <a href={`/${locale}/admin/users`} className="text-sm underline">Users</a>
         </div>
         <div className="flex items-center gap-2 text-sm mb-3">
-          <a href={`/${locale}/admin/events${q ? `?q=${encodeURIComponent(q)}` : ''}`} className={`px-3 py-1.5 rounded border ${!statusFilter ? 'bg-black text-white border-black' : ''}`}>All</a>
+          <a href={`/${locale}/admin/events${q || missingLocale ? `?${new URLSearchParams({ ...(q?{q}:{}) as any, ...(missingLocale?{missing: missingLocale}:{}) as any }).toString()}` : ''}`} className={`px-3 py-1.5 rounded border ${!statusFilter ? 'bg-black text-white border-black' : ''}`}>All</a>
           {['DRAFT','SCHEDULED','LIVE','SOLD_OUT','CANCELLED'].map(s => (
-            <a key={s} href={`/${locale}/admin/events?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ''}`} className={`px-3 py-1.5 rounded border ${statusFilter===s ? 'bg-black text-white border-black' : ''}`}>{s.replace('_',' ')}</a>
+            <a key={s} href={`/${locale}/admin/events?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ''}${missingLocale ? `&missing=${missingLocale}` : ''}`} className={`px-3 py-1.5 rounded border ${statusFilter===s ? 'bg-black text-white border-black' : ''}`}>{s.replace('_',' ')}</a>
           ))}
-          <a href={`/${locale}/admin/events?deleted=1${statusFilter ? `&status=${statusFilter}` : ''}${q ? `&q=${encodeURIComponent(q)}` : ''}`} className={`px-3 py-1.5 rounded border ${deletedOnly ? 'bg-red-600 text-white border-red-600' : ''}`}>Trash</a>
-          <form method="get" action={`/${locale}/admin/events`} className="ml-auto grid grid-cols-1 sm:grid-cols-6 gap-2 items-center">
+          <a href={`/${locale}/admin/events?deleted=1${statusFilter ? `&status=${statusFilter}` : ''}${q ? `&q=${encodeURIComponent(q)}` : ''}${missingLocale ? `&missing=${missingLocale}` : ''}`} className={`px-3 py-1.5 rounded border ${deletedOnly ? 'bg-red-600 text-white border-red-600' : ''}`}>Trash</a>
+          <form method="get" action={`/${locale}/admin/events`} className="ml-auto grid grid-cols-1 sm:grid-cols-7 gap-2 items-center">
             {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
             <input name="q" defaultValue={q} placeholder="Title or slug" className="border rounded px-2 py-1 text-sm sm:col-span-2" />
             <input type="date" name="createdFrom" defaultValue={createdFrom} className="border rounded px-2 py-1 text-sm" />
@@ -180,6 +182,12 @@ export default async function AdminEventsPage({ params, searchParams }: { params
             <input name="createdBy" defaultValue={createdBy} placeholder="Creator email" className="border rounded px-2 py-1 text-sm" />
             <input name="category" defaultValue={category} placeholder="Category slug" className="border rounded px-2 py-1 text-sm" />
             <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} /> Featured</label>
+            <select name="missing" defaultValue={missingLocale} className="border rounded px-2 py-1 text-sm">
+              <option value="">Missing: (any)</option>
+              <option value="sv">Missing: Swedish</option>
+              <option value="fi">Missing: Finnish</option>
+              <option value="en">Missing: English</option>
+            </select>
             <div className="flex gap-2">
               <button className="px-2 py-1 rounded border text-sm" type="submit">Filter</button>
               <a href={`/${locale}/admin/events`} className="px-2 py-1 rounded border text-sm">Reset</a>
@@ -227,7 +235,26 @@ export default async function AdminEventsPage({ params, searchParams }: { params
                   <td className="px-3 py-2"><input type="checkbox" name="ids" value={ev.id} form="bulkForm" /></td>
                   <td className="px-3 py-2">
                     <a className="underline" href={`/${locale}/event/${ev.slug}`}>{ev.title}</a>
-                    <div className="text-xs text-gray-500">{ev.categories.map(c => c.category.name).join(', ')}</div>
+                    <div className="text-xs text-gray-500">{(ev as any).categories.map((c: any) => c.category.name).join(', ')}</div>
+                    {/* Translation availability chips */}
+                    {(() => {
+                      const tr = ((ev as any).translations || []) as Array<{ locale: string }>
+                      const has = (loc: 'sv'|'fi'|'en') => tr.some(t => t.locale === loc)
+                      const Chip = ({ loc }: { loc: 'sv'|'fi'|'en' }) => (
+                        <span className={[
+                          'inline-block text-[10px] px-1.5 py-0.5 mr-1 rounded border',
+                          has(loc) ? 'bg-black text-white border-black' : 'bg-gray-100 text-gray-600',
+                        ].join(' ')}>{loc.toUpperCase()}</span>
+                      )
+                      return (
+                        <div className="mt-1">
+                          <Chip loc="sv" />
+                          <Chip loc="fi" />
+                          <Chip loc="en" />
+                          <a className="ml-2 underline" href={`/${locale}/admin/events/${ev.id}`}>Edit translations</a>
+                        </div>
+                      )
+                    })()}
                   </td>
                   <td className="px-3 py-2">
                     <form action={updateStatus} className="flex items-center gap-2">
@@ -296,10 +323,10 @@ export default async function AdminEventsPage({ params, searchParams }: { params
           <div>Page {page} of {totalPages} · {total} total</div>
           <div className="flex items-center gap-2">
             {page > 1 && (
-              <a className="px-2 py-1 rounded border" href={`/${locale}/admin/events?${new URLSearchParams({ ...(statusFilter?{status:statusFilter}:{}) as any, ...(q?{q}:{}) as any, ...(createdFrom?{createdFrom}:{}) as any, ...(createdTo?{createdTo}:{}) as any, ...(createdBy?{createdBy}:{}) as any, ...(category?{category}:{}) as any, ...(featuredOnly?{featured:'1'}:{}) as any, page: String(page-1), pageSize: String(pageSize) }).toString()}`}>Prev</a>
+              <a className="px-2 py-1 rounded border" href={`/${locale}/admin/events?${new URLSearchParams({ ...(statusFilter?{status:statusFilter}:{}) as any, ...(q?{q}:{}) as any, ...(createdFrom?{createdFrom}:{}) as any, ...(createdTo?{createdTo}:{}) as any, ...(createdBy?{createdBy}:{}) as any, ...(category?{category}:{}) as any, ...(featuredOnly?{featured:'1'}:{}) as any, ...(missingLocale?{missing:missingLocale}:{}) as any, page: String(page-1), pageSize: String(pageSize) }).toString()}`}>Prev</a>
             )}
             {page < totalPages && (
-              <a className="px-2 py-1 rounded border" href={`/${locale}/admin/events?${new URLSearchParams({ ...(statusFilter?{status:statusFilter}:{}) as any, ...(q?{q}:{}) as any, ...(createdFrom?{createdFrom}:{}) as any, ...(createdTo?{createdTo}:{}) as any, ...(createdBy?{createdBy}:{}) as any, ...(category?{category}:{}) as any, ...(featuredOnly?{featured:'1'}:{}) as any, page: String(page+1), pageSize: String(pageSize) }).toString()}`}>Next</a>
+              <a className="px-2 py-1 rounded border" href={`/${locale}/admin/events?${new URLSearchParams({ ...(statusFilter?{status:statusFilter}:{}) as any, ...(q?{q}:{}) as any, ...(createdFrom?{createdFrom}:{}) as any, ...(createdTo?{createdTo}:{}) as any, ...(createdBy?{createdBy}:{}) as any, ...(category?{category}:{}) as any, ...(featuredOnly?{featured:'1'}:{}) as any, ...(missingLocale?{missing:missingLocale}:{}) as any, page: String(page+1), pageSize: String(pageSize) }).toString()}`}>Next</a>
             )}
           </div>
         </div>

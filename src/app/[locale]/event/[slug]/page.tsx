@@ -2,6 +2,7 @@ import prisma from '@/lib/db'
 import { notFound } from 'next/navigation'
 import TzSync from '@/components/TzSync'
 import ShareButtons from '@/components/ShareButtons'
+import { pickEventTranslation } from '@/lib/i18n-events'
 
 export const revalidate = 60
 
@@ -12,12 +13,31 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: '
   }
   let event: { title: string; description?: string | null; coverImage?: string | null } | null = null
   try {
-    event = await prisma.event.findFirst({
+    const e: any = await prisma.event.findFirst({
       where: ({ slug, deletedAt: null as any } as any),
-      select: { title: true, description: true, coverImage: true },
+      include: {
+        translations: true as any,
+      } as any,
     })
+    if (e) {
+      const t = pickEventTranslation({ title: e.title, description: e.description, translations: e.translations || [] }, locale)
+      event = { title: t.title || e.title, description: t.description || e.description, coverImage: e.coverImage }
+    }
   } catch (e) {
-    event = null
+    // Fallback: query without translations (older DBs)
+    try {
+      const e2: any = await prisma.event.findFirst({
+        where: ({ slug, deletedAt: null as any } as any),
+        select: { title: true, description: true, coverImage: true },
+      })
+      if (e2) {
+        event = { title: e2.title, description: e2.description, coverImage: e2.coverImage }
+      } else {
+        event = null
+      }
+    } catch {
+      event = null
+    }
   }
   if (!event) return { title: 'Event not found' }
   const base = process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -69,7 +89,8 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         venue: true,
         organizer: true,
         categories: { include: { category: true } },
-      },
+        translations: true as any,
+      } as any,
     })) as any
   } catch (e) {
     event = null
@@ -77,6 +98,10 @@ export default async function EventPage({ params, searchParams }: { params: Prom
 
   if (!event) return notFound()
   if ((event as any).status === 'DRAFT') return notFound()
+
+  const localized = pickEventTranslation({ title: event.title, description: event.description, translations: event.translations || [] }, locale)
+  const displayTitle = localized.title || event.title
+  const displayDescription = localized.description || event.description
 
   const tz = tzParam || event.timezone || 'UTC'
   const absoluteUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/${locale}/event/${slug}${tzParam ? `?tz=${encodeURIComponent(tzParam)}` : ''}`
@@ -107,7 +132,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         <TzSync />
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">{event.title}</h1>
+            <h1 className="text-2xl font-semibold">{displayTitle}</h1>
             {tz && <span className="text-xs rounded border px-2 py-0.5 text-gray-700">{tz}</span>}
           </div>
           <div className="flex items-center gap-2">
@@ -174,9 +199,9 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           />
         )}
 
-        {event.description && (
+        {displayDescription && (
           <div className="prose dark:prose-invert max-w-none">
-            <p>{event.description}</p>
+            <p>{displayDescription}</p>
           </div>
         )}
 

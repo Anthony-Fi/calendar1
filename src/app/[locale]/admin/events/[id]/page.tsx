@@ -30,7 +30,9 @@ export default async function AdminEventEditPage({ params }: { params: Promise<{
     include: {
       categories: { include: { category: true } },
       createdBy: true,
-    },
+      // Include translations for editing UI
+      translations: true as any,
+    } as any,
   })
   if (!event) redirect(`/${locale}/admin/events`)
 
@@ -115,6 +117,42 @@ export default async function AdminEventEditPage({ params }: { params: Promise<{
     redirect(`/${String(formData.get('locale') || locale)}/admin/events`)
   }
 
+  async function saveTranslations(formData: FormData) {
+    'use server'
+    const session = await getServerSession(authOptions)
+    const role = (session as any)?.user?.role as 'USER' | 'MODERATOR' | 'ADMIN' | undefined
+    if (!role || (role !== 'MODERATOR' && role !== 'ADMIN')) {
+      redirect('/')
+    }
+
+    const id = String(formData.get('id') || '')
+    if (!id) redirect('/')
+
+    const defaultLanguage = String(formData.get('defaultLanguage') || '').trim() as 'sv' | 'fi' | 'en' | ''
+    const locales: Array<'sv'|'fi'|'en'> = ['sv','fi','en']
+    for (const loc of locales) {
+      const title = String(formData.get(`title_${loc}`) || '').trim()
+      const descriptionRaw = String(formData.get(`description_${loc}`) || '').trim()
+      const description = descriptionRaw ? descriptionRaw : null
+      if (!title && !description) {
+        // Remove translation if present
+        await (prisma as any).eventTranslation.delete({ where: { eventId_locale: { eventId: id, locale: loc } } }).catch(() => {})
+      } else {
+        await (prisma as any).eventTranslation.upsert({
+          where: { eventId_locale: { eventId: id, locale: loc } },
+          update: { title: title || '', description },
+          create: { eventId: id, locale: loc, title: title || '', description },
+        })
+      }
+    }
+
+    if (defaultLanguage && ['sv','fi','en'].includes(defaultLanguage)) {
+      await prisma.event.update({ where: { id }, data: { defaultLanguage } as any })
+    }
+
+    redirect(`/${String(formData.get('locale') || locale)}/admin/events/${id}`)
+  }
+
   const audits = await (prisma as any).eventAudit.findMany({
     where: { eventId: id },
     orderBy: { createdAt: 'desc' },
@@ -122,7 +160,7 @@ export default async function AdminEventEditPage({ params }: { params: Promise<{
     take: 50,
   })
 
-  const selectedCatIds = new Set(event.categories.map((c: any) => c.categoryId))
+  const selectedCatIds = new Set((event as any).categories.map((c: any) => c.categoryId))
 
   return (
     <div className="min-h-screen p-6 sm:p-10">
@@ -214,6 +252,61 @@ export default async function AdminEventEditPage({ params }: { params: Promise<{
               <a href={`/${locale}/admin/events`} className="ml-2 text-sm underline">Cancel</a>
             </div>
           </form>
+
+          {/* Translations panel */}
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-3">Translations</h2>
+            <form action={saveTranslations} className="space-y-4">
+              <input type="hidden" name="id" value={event.id} />
+              <input type="hidden" name="locale" value={locale} />
+              {(() => {
+                const tSv = (event as any).translations?.find((x: any) => x.locale === 'sv') || {}
+                const tFi = (event as any).translations?.find((x: any) => x.locale === 'fi') || {}
+                const tEn = (event as any).translations?.find((x: any) => x.locale === 'en') || {}
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="border rounded p-3 bg-white">
+                      <div className="font-medium mb-2">Swedish (sv)</div>
+                      <label className="block text-sm mb-1" htmlFor="title_sv">Title (sv)</label>
+                      <input id="title_sv" name="title_sv" defaultValue={tSv.title || ''} className="w-full border rounded px-3 py-2 mb-2" />
+                      <label className="block text-sm mb-1" htmlFor="description_sv">Description (sv)</label>
+                      <textarea id="description_sv" name="description_sv" rows={4} defaultValue={tSv.description || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div className="border rounded p-3 bg-white">
+                      <div className="font-medium mb-2">Finnish (fi)</div>
+                      <label className="block text-sm mb-1" htmlFor="title_fi">Title (fi)</label>
+                      <input id="title_fi" name="title_fi" defaultValue={tFi.title || ''} className="w-full border rounded px-3 py-2 mb-2" />
+                      <label className="block text-sm mb-1" htmlFor="description_fi">Description (fi)</label>
+                      <textarea id="description_fi" name="description_fi" rows={4} defaultValue={tFi.description || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div className="border rounded p-3 bg-white">
+                      <div className="font-medium mb-2">English (en)</div>
+                      <label className="block text-sm mb-1" htmlFor="title_en">Title (en)</label>
+                      <input id="title_en" name="title_en" defaultValue={tEn.title || ''} className="w-full border rounded px-3 py-2 mb-2" />
+                      <label className="block text-sm mb-1" htmlFor="description_en">Description (en)</label>
+                      <textarea id="description_en" name="description_en" rows={4} defaultValue={tEn.description || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                  </div>
+                )
+              })()}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                  <label className="block text-sm mb-1" htmlFor="defaultLanguage">Default authoring language</label>
+                  <select id="defaultLanguage" name="defaultLanguage" defaultValue={(event as any).defaultLanguage || 'sv'} className="w-full border rounded px-3 py-2">
+                    <option value="sv">Swedish (sv)</option>
+                    <option value="fi">Finnish (fi)</option>
+                    <option value="en">English (en)</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2 text-sm text-gray-600">
+                  Leave a locale blank to remove that translation. Display order prefers the viewer’s locale, then sv → fi → en.
+                </div>
+              </div>
+              <div className="pt-2">
+                <button type="submit" className="px-4 py-2 rounded border">Save translations</button>
+              </div>
+            </form>
+          </div>
         </div>
         <div>
           <h2 className="text-lg font-semibold mb-2">Audit history</h2>
